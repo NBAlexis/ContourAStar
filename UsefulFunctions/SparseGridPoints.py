@@ -9,3 +9,23 @@ class SparseGridPoints:
         self.xIndex = xIndex
         self.yBatch = yBatch
         self.yIndex = yIndex
+
+
+class SparseGridPoints3D:
+    def __init__(self, x: float, y: float, z: float,
+                 xBatch: int, xIndex: int,
+                 yBatch: int, yIndex: int,
+                 zBatch: int, zIndex: int,
+                 w: float = 0, v: complex = 0):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.w = w
+        self.v = v
+        self.xBatch = xBatch
+        self.xIndex = xIndex
+        self.yBatch = yBatch
+        self.yIndex = yIndex
+        self.zBatch = zBatch
+        self.zIndex = zIndex
+

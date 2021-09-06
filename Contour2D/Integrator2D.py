@@ -15,6 +15,9 @@ class Integrators2D:
     def PartialIntegrateY(self, func: Integrand2D, x: complex, fromY: complex, toY: complex) -> [bool, complex]:
         pass
 
+    def GetLeftEdgeX(self) -> float:
+        pass
+
 
 class SparseGridIntegrator(Integrators2D):
 
@@ -62,7 +65,9 @@ class SparseGridIntegrator(Integrators2D):
             for pointIndex in range(0, self.endIndex[i]):
                 resNew = resNew + self.points[pointIndex].v * self.weights[i][pointIndex]
             if i > 0:
-                delta = abs((resNew - resOld) / resNew)
+                checkDelta = abs(resNew)
+                checkDelta = 1.0e-6 if checkDelta < 1.0e-6 else checkDelta
+                delta = abs((resNew - resOld) / checkDelta)
                 if self.logLevel >= LogLevel.Verbose:
                     print("delta = ", delta)
                 if delta < self.epsilon:
@@ -108,7 +113,9 @@ class SparseGridIntegrator(Integrators2D):
             for pointIndex in range(0, self.endIndexY[i]):
                 resNew = resNew + self.pointsY[pointIndex].v * self.weightsY[i][pointIndex]
             if i > 0:
-                delta = abs(strideY * (resNew - resOld))
+                checkDelta = abs(resNew)
+                checkDelta = 1.0e-6 if checkDelta < 1.0e-6 else checkDelta
+                delta = abs((resNew - resOld) / checkDelta)
                 if self.logLevel > LogLevel.Verbose:
                     print("x = {}, Y from {} to {} = {}, delta = {}/{}"
                           .format(x, fromY, toY, strideY * resNew, delta, self.epsilon1d))
@@ -119,7 +126,7 @@ class SparseGridIntegrator(Integrators2D):
             resOld = resNew
         print(
             "Sparse Grid PartialIntegrateYEdge failed due to max iteration reached\n x={}, y: {} to {}, last value is ".format(
-                x, fromY, toY), strideY * resOld, " last delta: ", delta)
+                x, fromY, toY), strideY * resOld, " last delta: {}/{}".format(delta, self.epsilon1d))
         return [False, strideY * resOld]
 
     def GetLeftEdgeX(self) -> float:

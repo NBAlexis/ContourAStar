@@ -248,8 +248,6 @@ class CGrids2D:
                                                                          self.YPath[i + 1])
             bHasValue = bHasValue and bHasValueSurface
             value = value + valueSurface
-            if x == self.startX and y == self.startY and direction == GridDir.Down:
-                print(valueSurface)
         if bHasValue:
             self.gridArray[y][x].neighbourState[direction] = GridNeighbour.Connected
             self.gridArray[y][x].neighbourV[direction] = value
@@ -337,14 +335,14 @@ class CGrids2D:
                     ",{}".format(self.YPath[i].real) if 0 != i else "{}".format(self.YPath[i].real))
                 listPlotY = listPlotY + (
                     ",{}".format(self.YPath[i].imag) if 0 != i else "{}".format(self.YPath[i].imag))
-            listPlotA = "\nListLinePlot[Transpose[{}{}{}{},{}{}{}{}], AxesLabel -> {}\"Re[y]\", \"Im[y]\"{}]\n" \
+            listPlotA = "\nListLinePlot[Transpose[{}{}{}{},{}{}{}{}], AxesLabel -> {}\"Re[y]\", \"Im[y]\"{}, PlotStyle -> Thick]\n" \
                 .format("{", "{", listPlotX, "}", "{", listPlotY, "}", "}", "{", "}")
             listPlotX = ""
             listPlotY = ""
             for i in range(0, len(points)):
                 listPlotX = listPlotX + (",{}".format(points[i].real) if 0 != i else "{}".format(points[i].real))
                 listPlotY = listPlotY + (",{}".format(points[i].imag) if 0 != i else "{}".format(points[i].imag))
-            listPlotB = "ListLinePlot[Transpose[{}{}{}{},{}{}{}{}], AxesLabel -> {}\"Re[x]\", \"Im[x]\"{}]\n" \
+            listPlotB = "ListLinePlot[Transpose[{}{}{}{},{}{}{}{}], AxesLabel -> {}\"Re[x]\", \"Im[x]\"{}, PlotStyle -> Thick]\n" \
                 .format("{", "{", listPlotX, "}", "{", listPlotY, "}", "}", "{", "}")
             intRes = intRes.replace("j", " I")
             return "(* =========== Copy these to Mathematica ========== *)\n\n" + intRes + listPlotA + listPlotB

@@ -58,7 +58,6 @@ grids3 = CGrids(3, 3, 0, testIntegrator, integrand3)
 print("{}: {}".format(res, resV))
 grids3.ShowIntegralPath()
 
-
 """
 NIntegrate[1/(Log[a] + 0.5), {a, 0, I}] + 
  NIntegrate[1/(Log[a] + 0.5), {a, I, 1 + I}] + 
@@ -70,3 +69,14 @@ grids4 = CGrids(3, 3, 0, testIntegrator, integrand4)
 [res, resV] = grids4.Integrate()
 print("{}: {}".format(res, resV))
 grids4.ShowIntegralPath()
+
+
+def testIntegrand5(x: complex) -> complex:
+    return 1 / ((x - 0.5) ** 4)
+
+
+integrand5 = Integrand(testIntegrand5, 0, 1, IntegrandType.ZeroOne)
+grids5 = CGrids(3, 3, 0, testIntegrator, integrand5)
+[res, resV] = grids5.Integrate()
+print("{}: {}".format(res, resV))
+grids5.ShowIntegralPath()
