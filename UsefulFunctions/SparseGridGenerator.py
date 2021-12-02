@@ -82,6 +82,7 @@ class SparseGrid:
         """
         maxOrder = self.quadrature.MaxOrder()
         order = min(order, maxOrder) if maxOrder > 0 else order
+        self.quadrature.CachePointAndWeights(order)
         points = []
         starts = []
         ends = []

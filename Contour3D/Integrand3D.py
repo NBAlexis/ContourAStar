@@ -56,6 +56,8 @@ class Integrand3D:
             self.sepZ = (rightZ - leftZ) * 0.5
         # ================ Others ==================
         self.aInfMapping = aInfMapping
+        self.hasMathematicaExpression = False
+        self.FExpression = ""
 
     def Evaluate(self, x: complex, y: complex, z: complex) -> complex:
         """
@@ -113,11 +115,7 @@ class Integrand3D:
         except (ValueError, ZeroDivisionError):
             return cmath.nan
 
-    def GetDebugInfo(self) -> str:
-        head = "Print[\"Original Integral is Integrate[f[x,y,z], {}x,{},{}{}, {}y,{},{}{}, {}z,{},{}{}]\"]\n" \
-            .format("{", self.leftX, self.rightX, "}",
-                    "{", self.leftY, self.rightY, "}",
-                    "{", self.leftZ, self.rightZ, "}")
+    def Dress(self) -> str:
         argX = ""
         argY = ""
         argZ = ""
@@ -161,4 +159,26 @@ class Integrand3D:
         elif self.caseZ == IntegrandType.InfiniteInfinite:
             factor = factor + "(Sec[z Pi]^2 Pi / 2) * "
             argZ = "Tan[z Pi]"
-        return head + "g[x_, y_, z_]:={} f[{}, {}, {}];".format(factor, argX, argY, argZ)
+        return "g[x_, y_, z_]:={} f[{}, {}, {}];".format(factor, argX, argY, argZ)
+
+    def GetDebugInfo(self) -> str:
+        head = "Print[\"Original Integral is Integrate[f[x,y,z], {}x,{},{}{}, {}y,{},{}{}, {}z,{},{}{}]\"]\n" \
+            .format("{", self.leftX, self.rightX, "}",
+                    "{", self.leftY, self.rightY, "}",
+                    "{", self.leftZ, self.rightZ, "}")
+        if self.hasMathematicaExpression:
+            return head + self.FExpression
+        return head + self.Dress()
+
+    def SetMathematicaExpress(self, expression: str) -> str:
+        self.hasMathematicaExpression = True
+        self.FExpression = "f[x_, y_, z_]:=" + expression + ";\n" + self.Dress() + "\n"
+        return self.FExpression
+
+    def GetMathematicaExpress(self) -> [bool, str]:
+        if self.hasMathematicaExpression:
+            return [True, self.FExpression]
+        return [False, ""]
+
+
+

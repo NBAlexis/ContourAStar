@@ -7,7 +7,6 @@
 https://people.sc.fsu.edu/~jburkardt/c_src/patterson_rule/patterson_rule.c
 """
 from UsefulFunctions.NestedQuadrature import NestedQuadrature
-from UsefulFunctions.SparseGridPoints import SparseGridPoints
 
 
 class GaussPatterson(NestedQuadrature):
@@ -2084,6 +2083,14 @@ class GaussPatterson(NestedQuadrature):
 
     def GetLeftMostPoint(self) -> [float, int, int]:
         return [-0.999999672956734384381, 9, 0]
+
+    def CachePointAndWeights(self, n: int):
+        # do nothing
+        return
+
+    def CachePointAndWeightsOneOrder(self, n: int) -> [list, list]:
+        # do nothing
+        return [[], []]
 
 
 def TestGaussPattersonWeightList():

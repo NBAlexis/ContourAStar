@@ -141,7 +141,9 @@ class CGrids3D:
             return
         oppositeD: GridDir = GridDir.Down - direction
         bHasValue: bool = True
-        for xValue in self.XPoints:
+        first2 = [self.XPoints[0], self.XPoints[1]]
+        # for xValue in self.XPoints:
+        for xValue in first2:
             for i in range(0, len(self.ZPath) - 1):
                 [bHasValue1, _] = self.integrator.IntegrateYZ(self.integrand,
                                                               xValue,

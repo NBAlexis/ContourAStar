@@ -2,13 +2,32 @@ from UsefulFunctions.SparseGridPoints import SparseGridPoints
 
 
 class NestedQuadrature:
+    def __init__(self):
+        self.p = []
+        self.w = []
+        self.weightCached = 0
+
     def GetPointAndWeight(self, n: int) -> [list, list]:
-        pass
+        self.CachePointAndWeights(n)
+        return [self.p[n - 1], self.w[n - 1]]
 
     def GetNewPoint(self, n: int) -> list:
         pass
 
     def GetPointWeightIndex(self, n: int, batch: int, index: int) -> int:
+        pass
+
+    def CachePointAndWeights(self, n: int):
+        if self.weightCached >= n:
+            return
+        for toCache in range(self.weightCached + 1, n + 1):
+            print("caching order {} ...".format(toCache))
+            [p, w] = self.CachePointAndWeightsOneOrder(toCache)
+            self.p.append(p)
+            self.w.append(w)
+        self.weightCached = n
+
+    def CachePointAndWeightsOneOrder(self, n: int) -> [list, list]:
         pass
 
     def ConstructPointListY(self, xBatch: int, xIndex: int, maxOrder: int = 12) -> [list, list, list, list]:
@@ -49,6 +68,7 @@ class NestedQuadrature:
 class Trapezoidal(NestedQuadrature):
 
     def __init__(self, smallProtect: float = 1.0e-15):
+        super().__init__()
         self.smallProtect = smallProtect
 
     def GetPointAndWeight(self, n: int) -> [list, list]:
@@ -93,6 +113,14 @@ class Trapezoidal(NestedQuadrature):
     def GetLeftMostPoint(self) -> [float, int, int]:
         return [-1 + self.smallProtect, 1, 0]
 
+    def CachePointAndWeights(self, n: int):
+        # do nothing
+        return
+
+    def CachePointAndWeightsOneOrder(self, n: int) -> [list, list]:
+        # do nothing
+        return [[], []]
+
 
 def TestTrapezoidalWeightList(maxOrder: int = 12):
     quadrature = Trapezoidal()
@@ -106,3 +134,4 @@ def TestTrapezoidalWeightList(maxOrder: int = 12):
     print(weightList[0])
     print(weightList[1])
     print(weightList[2])
+

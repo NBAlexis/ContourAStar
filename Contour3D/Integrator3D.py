@@ -200,3 +200,7 @@ class SparseGridIntegrator3D(Integrators3D):
     def GetLeftEdgeX(self) -> float:
         [v, _, _] = self.nestedQuadrature.GetLeftMostPoint()
         return v
+
+    def Finish(self):
+        return
+
