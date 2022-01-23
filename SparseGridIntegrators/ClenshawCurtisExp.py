@@ -1,6 +1,6 @@
 import math
 
-from UsefulFunctions.NestedQuadrature import NestedQuadrature
+from SparseGridIntegrators.NestedQuadrature import NestedQuadrature
 
 
 class ClenshawCurtisExp(NestedQuadrature):

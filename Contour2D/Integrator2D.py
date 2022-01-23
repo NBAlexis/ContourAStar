@@ -2,9 +2,9 @@ import cmath
 
 from Contour1D.CommonDefinitions import LogLevel
 from Contour2D.Integrand2D import Integrand2D
-from UsefulFunctions.GaussianPatterson import GaussPatterson
-from UsefulFunctions.NestedQuadrature import NestedQuadrature
-from UsefulFunctions.SparseGridGenerator import SparseGrid
+from SparseGridIntegrators.GaussianPatterson import GaussPatterson
+from SparseGridIntegrators.NestedQuadrature import NestedQuadrature
+from SparseGridIntegrators.SparseGridGenerator import SparseGrid
 
 
 class Integrators2D:
@@ -93,20 +93,23 @@ class SparseGridIntegrator(Integrators2D):
                 y = self.pointsY[pointIndex].y
                 v = func.Evaluate(x, strideY * (y + 1) + fromY)
                 if cmath.isnan(v) or cmath.isinf(v):
-                    print("Sparse Grid failed because of nan at  {}, {}, ({})".format(x, strideY * (y + 1) + fromY, y))
+                    if self.logLevel >= LogLevel.General:
+                        print("Sparse Grid failed because of nan at  {}, {}, ({})".format(x, strideY * (y + 1) + fromY, y))
                     return [False, cmath.nan]
                 if self.checkContinuity > 0:
                     dyReal = abs(func.Evaluate(x, strideY * (y + 1) + fromY + 1.0e-8) - func.Evaluate(x, strideY * (
                             y + 1) + fromY - 1.0e-8))
                     if dyReal > self.checkContinuity:
-                        print("Sparse Grid failed because of discontinuity(R) at  {}, {}, ({})"
-                              .format(x, strideY * (y + 1) + fromY, y))
+                        if self.logLevel >= LogLevel.General:
+                            print("Sparse Grid failed because of discontinuity(R) at  {}, {}, ({})"
+                                .format(x, strideY * (y + 1) + fromY, y))
                         return [False, cmath.nan]
                     dyImag = abs(func.Evaluate(x, strideY * (y + 1) + fromY + 1.0e-8j) - func.Evaluate(x, strideY * (
                             y + 1) + fromY - 1.0e-8j))
                     if dyImag > self.checkContinuity:
-                        print("Sparse Grid failed because of discontinuity(I) at  {}, {}, ({})"
-                              .format(x, strideY * (y + 1) + fromY, y))
+                        if self.logLevel >= LogLevel.General:
+                            print("Sparse Grid failed because of discontinuity(I) at  {}, {}, ({})"
+                                .format(x, strideY * (y + 1) + fromY, y))
                 self.pointsY[pointIndex].v = v
             # ======= time weights ===============
             resNew: complex = 0
@@ -124,9 +127,9 @@ class SparseGridIntegrator(Integrators2D):
                         print("x = {}, Y from {} to {} = {}".format(x, fromY, toY, strideY * resNew))
                     return [True, strideY * resNew]
             resOld = resNew
-        print(
-            "Sparse Grid PartialIntegrateYEdge failed due to max iteration reached\n x={}, y: {} to {}, last value is ".format(
-                x, fromY, toY), strideY * resOld, " last delta: {}/{}".format(delta, self.epsilon1d))
+        if self.logLevel >= LogLevel.General:
+            print("Sparse Grid PartialIntegrateYEdge failed due to max iteration reached\n x={}, y: {} to {}, last value is ".format(
+                    x, fromY, toY), strideY * resOld, " last delta: {}/{}".format(delta, self.epsilon1d))
         return [False, strideY * resOld]
 
     def GetLeftEdgeX(self) -> float:

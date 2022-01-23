@@ -1,5 +1,9 @@
+"""
+CGrid2D is useful.
+However, it is not very powerful
+"""
+
 import cmath
-from enum import IntEnum
 
 from Contour1D.CGrids import GridDir, GridNeighbour, GridState, OneGrid, AStarResult
 from Contour1D.CommonDefinitions import LogLevel

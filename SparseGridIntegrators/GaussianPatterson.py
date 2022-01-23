@@ -6,7 +6,7 @@
 来自：
 https://people.sc.fsu.edu/~jburkardt/c_src/patterson_rule/patterson_rule.c
 """
-from UsefulFunctions.NestedQuadrature import NestedQuadrature
+from SparseGridIntegrators.NestedQuadrature import NestedQuadrature
 
 
 class GaussPatterson(NestedQuadrature):

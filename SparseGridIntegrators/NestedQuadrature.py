@@ -1,4 +1,4 @@
-from UsefulFunctions.SparseGridPoints import SparseGridPoints
+from SparseGridIntegrators.SparseGridPoints import SparseGridPoints
 
 
 class NestedQuadrature:

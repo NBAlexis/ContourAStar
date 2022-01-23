@@ -1,3 +1,6 @@
+"""
+This is the examples of the 1D integrators that can be worked out by "CGrids"
+"""
 from Contour1D.CGrids import CGrids
 from Contour1D.Integrand import *
 from Contour1D.Integrators import *

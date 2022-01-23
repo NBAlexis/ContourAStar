@@ -26,8 +26,8 @@ i = 2: j in range(1, 3) 2,1,2, 2,2,1
 i = 3: j in range(1, 2) 3,1,1
 
 """
-from UsefulFunctions.GaussianPatterson import *
-from UsefulFunctions.SparseGridPoints import SparseGridPoints3D
+from SparseGridIntegrators.GaussianPatterson import *
+from SparseGridIntegrators.SparseGridPoints import SparseGridPoints3D
 
 
 class SparseGrid3D:

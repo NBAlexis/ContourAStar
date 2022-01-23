@@ -1,4 +1,4 @@
-from Contour2D.CGrid2D import CGrids2D
+from _DiscardedIntegrators.CGrid2D import CGrids2D
 from Contour2D.Integrand2D import Integrand2D
 from Contour2D.Integrator2D import SparseGridIntegrator
 
@@ -27,4 +27,3 @@ intgrator2 = SparseGridIntegrator(epsilon=1.0e-3)
 grid2dbigger = CGrids2D(103, 103, 1, intgrator2, intgrand2)
 print(grid2dbigger.Integrate())
 print(grid2dbigger.GatherInfo())
-# grid2dbigger.Show()

@@ -11,6 +11,7 @@ class Integrand3D:
                  leftY: complex, rightY: complex,
                  leftZ: complex, rightZ: complex,
                  aInfMapping: AInfiniteMapping = LogMapping()):
+        self.vpf = None
         self.func = func
         # ================= X ====================
         if cmath.isinf(leftX) and cmath.isinf(rightX):
@@ -59,6 +60,11 @@ class Integrand3D:
         self.hasMathematicaExpression = False
         self.FExpression = ""
 
+    def MakeSureZeroOne(self):
+        self.caseX = IntegrandType.ZeroOne
+        self.caseY = IntegrandType.ZeroOne
+        self.caseZ = IntegrandType.ZeroOne
+
     def Evaluate(self, x: complex, y: complex, z: complex) -> complex:
         """
         为了避免大量计算，我们不再使用逼近
@@ -70,7 +76,7 @@ class Integrand3D:
             newZ: complex = z
             factor: complex = 1
             # =============== X ==================
-            if self.caseX == IntegrandType.AB:
+            if self.caseX == IntegrandType.AB or self.caseX == IntegrandType.ZeroOne:
                 factor = factor * self.sepX
                 newX = self.sepX * (x + 1) + self.leftX
             elif self.caseX == IntegrandType.AInfinite:
@@ -84,7 +90,7 @@ class Integrand3D:
                 factor = factor * 0.5 * cmath.pi / (cmath.cos(b) ** 2)
                 newX = cmath.tan(b)
             # =============== Y ==================
-            if self.caseY == IntegrandType.AB:
+            if self.caseY == IntegrandType.AB or self.caseY == IntegrandType.ZeroOne:
                 factor = factor * self.sepY
                 newY = self.sepY * (y + 1) + self.leftY
             elif self.caseY == IntegrandType.AInfinite:
@@ -98,7 +104,7 @@ class Integrand3D:
                 factor = factor * 0.5 * cmath.pi / (cmath.cos(b) ** 2)
                 newY = cmath.tan(b)
             # =============== Z ==================
-            if self.caseZ == IntegrandType.AB:
+            if self.caseZ == IntegrandType.AB or self.caseZ == IntegrandType.ZeroOne:
                 factor = factor * self.sepZ
                 newZ = self.sepZ * (z + 1) + self.leftZ
             elif self.caseZ == IntegrandType.AInfinite:
@@ -121,7 +127,10 @@ class Integrand3D:
         argZ = ""
         factor = ""
         # =============== X ==================
-        if self.caseX == IntegrandType.AB:
+        if self.caseX == IntegrandType.ZeroOne:
+            factor = "(1/2) * "
+            argX = "(x + 1)/2"
+        elif self.caseX == IntegrandType.AB:
             factor = "{} * ".format(self.sepX)
             argX = "{} * (x + 1) + {}".format(self.sepX, self.leftX)
         elif self.caseX == IntegrandType.AInfinite:
@@ -134,7 +143,10 @@ class Integrand3D:
             factor = "(Sec[x Pi]^2 Pi / 2) * "
             argX = "Tan[x Pi]"
         # =============== Y ==================
-        if self.caseY == IntegrandType.AB:
+        if self.caseY == IntegrandType.ZeroOne:
+            factor = factor + "(1/2) * "
+            argY = "(y + 1)/2"
+        elif self.caseY == IntegrandType.AB:
             factor = factor + "{} * ".format(self.sepY)
             argY = "{} * (y + 1) + {}".format(self.sepY, self.leftY)
         elif self.caseY == IntegrandType.AInfinite:
@@ -147,7 +159,10 @@ class Integrand3D:
             factor = factor + "(Sec[y Pi]^2 Pi / 2) * "
             argY = "Tan[y Pi]"
         # =============== Z ==================
-        if self.caseZ == IntegrandType.AB:
+        if self.caseZ == IntegrandType.ZeroOne:
+            factor = factor + "(1/2) * "
+            argZ = "(z + 1)/2"
+        elif self.caseZ == IntegrandType.AB:
             factor = factor + "{} * ".format(self.sepZ)
             argZ = "{} * (z + 1) + {}".format(self.sepZ, self.leftZ)
         elif self.caseZ == IntegrandType.AInfinite:
@@ -179,6 +194,12 @@ class Integrand3D:
         if self.hasMathematicaExpression:
             return [True, self.FExpression]
         return [False, ""]
+
+    def SetVPF(self, vpf):
+        self.vpf = vpf
+
+    def GetVPF(self):
+        return self.vpf
 
 
 

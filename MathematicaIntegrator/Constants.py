@@ -2,7 +2,7 @@ import math
 
 from wolframclient.language import wl, wlexpr
 from wolframclient.evaluation import WolframLanguageSession
-from wolframclient.deserializers import WXFConsumer, binary_deserialize
+from wolframclient.deserializers import WXFConsumer
 
 _MATHEMATICA_PATH_ = 'F:\\Mathematica\\12.0\\MathKernel.exe'
 
@@ -78,9 +78,9 @@ class MathLink:
         self.session.stop()
 
 
-def CallMath(parameter):
+def CallMath():
     session = WolframLanguageSession(_MATHEMATICA_PATH_)
-    [bDone, resr, resi] = session.evaluate(wlexpr('Quiet[If[res = Check[NIntegrate[1/(x + 0.5 I), {x, 0, 1}], False, {NIntegrate::slwcon, NIntegrate::ncvb}]; BooleanQ[res], {False, 0, 0}, {True, Re[res], Im[res]}], {NIntegrate::slwcon, NIntegrate::ncvb}]'))
+    [_, resr, resi] = session.evaluate(wlexpr('Quiet[If[res = Check[NIntegrate[1/(x + 0.5 I), {x, 0, 1}], False, {NIntegrate::slwcon, NIntegrate::ncvb}]; BooleanQ[res], {False, 0, 0}, {True, Re[res], Im[res]}], {NIntegrate::slwcon, NIntegrate::ncvb}]'))
     # complex_result = binary_deserialize(res, consumer=MathConsumer())
     print(resr)
     print(resi)

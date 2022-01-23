@@ -2,10 +2,10 @@ import cmath
 
 from Contour1D.CommonDefinitions import LogLevel
 from Contour3D.Integrand3D import Integrand3D
-from UsefulFunctions.GaussianPatterson import GaussPatterson
-from UsefulFunctions.NestedQuadrature import NestedQuadrature
-from UsefulFunctions.SparseGridGenerator import SparseGrid
-from UsefulFunctions.SparseGridGenerator3D import SparseGrid3D
+from SparseGridIntegrators.GaussianPatterson import GaussPatterson
+from SparseGridIntegrators.NestedQuadrature import NestedQuadrature
+from SparseGridIntegrators.SparseGridGenerator import SparseGrid
+from SparseGridIntegrators.SparseGridGenerator3D import SparseGrid3D
 
 
 class Integrators3D:

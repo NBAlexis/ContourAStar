@@ -1,6 +1,4 @@
-from MathematicaIntegrator.Constants import CallMath, MathLink
-
-# CallMath('testmathlink.m')
+from MathematicaIntegrator.Constants import MathLink
 
 mathlink = MathLink()
 

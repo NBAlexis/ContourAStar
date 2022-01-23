@@ -1,4 +1,4 @@
-from Contour3D.CMarkedGrid3D import CMarkedGrids3D
+from _DiscardedIntegrators.CMarkedGrid3D import CMarkedGrids3D
 from Contour3D.Integrand3D import Integrand3D
 from Contour3D.Integrator3D import SparseGridIntegrator3D
 

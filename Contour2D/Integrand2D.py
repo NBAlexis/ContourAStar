@@ -92,6 +92,49 @@ class Integrand2D:
         if caseY == IntegrandType.AB:
             self.sepY = (rightY - leftY) * 0.5
         self.aInfMapping = aInfMapping
+        self.hasMathematicaExpression = False
+        self.FExpression = ""
+
+    def SetMathematicaExpress(self, expression: str) -> str:
+        self.hasMathematicaExpression = True
+        self.FExpression = "f[x_, y_]:=" + expression + ";\n" + self.Dress()
+        return self.FExpression
+
+    def GetMathematicaExpress(self) -> [bool, str]:
+        if self.hasMathematicaExpression:
+            return [True, self.FExpression]
+        return [False, ""]
+
+    def Dress(self) -> str:
+        argX = ""
+        argY = ""
+        factor = ""
+        if self.caseX == IntegrandType.AB:
+            factor = "{} * ".format(self.sepX)
+            argX = "{} * (x + 1) + {}".format(self.sepX, self.leftX)
+        elif self.caseX == IntegrandType.AInfinite:
+            factor = self.aInfMapping.FactorString(True, self.leftX, "x")
+            argX = self.aInfMapping.ArgString(True, self.leftX, "x")
+        elif self.caseX == IntegrandType.InfiniteA:
+            factor = self.aInfMapping.FactorString(False, self.rightX, "x")
+            argX = self.aInfMapping.ArgString(False, self.rightX, "x")
+        elif self.caseX == IntegrandType.InfiniteInfinite:
+            factor = "(Sec[x Pi]^2 Pi / 2) * "
+            argX = "Tan[x Pi]"
+        # =============== Y ==================
+        if self.caseY == IntegrandType.AB:
+            factor = factor + "{} * ".format(self.sepY)
+            argY = "{} * (y + 1) + {}".format(self.sepY, self.leftY)
+        elif self.caseY == IntegrandType.AInfinite:
+            factor = factor + self.aInfMapping.FactorString(True, self.leftY, "y")
+            argY = self.aInfMapping.ArgString(True, self.leftY, "y")
+        elif self.caseY == IntegrandType.InfiniteA:
+            factor = factor + self.aInfMapping.FactorString(False, self.rightY, "y")
+            argY = self.aInfMapping.ArgString(False, self.rightY, "y")
+        elif self.caseY == IntegrandType.InfiniteInfinite:
+            factor = factor + "(Sec[y Pi]^2 Pi / 2) * "
+            argY = "Tan[y Pi]"
+        return "g[x_, y_]:={} f[{}, {}];\n".format(factor, argX, argY)
 
     def Evaluate(self, x: complex, y: complex) -> complex:
         """
@@ -137,32 +180,8 @@ class Integrand2D:
     def GetDebugInfo(self) -> str:
         head = "Print[\"Original Integral is Integrate[f[x,y], {}x,{},{}{}, {}y,{},{}{}]\"]\n"\
             .format("{", self.leftX, self.rightX, "}", "{", self.leftY, self.rightY, "}")
-        argX = ""
-        argY = ""
-        factor = ""
-        if self.caseX == IntegrandType.AB:
-            factor = "{} * ".format(self.sepX)
-            argX = "{} * (x + 1) + {}".format(self.sepX, self.leftX)
-        elif self.caseX == IntegrandType.AInfinite:
-            factor = self.aInfMapping.FactorString(True, self.leftX, "x")
-            argX = self.aInfMapping.ArgString(True, self.leftX, "x")
-        elif self.caseX == IntegrandType.InfiniteA:
-            factor = self.aInfMapping.FactorString(False, self.rightX, "x")
-            argX = self.aInfMapping.ArgString(False, self.rightX, "x")
-        elif self.caseX == IntegrandType.InfiniteInfinite:
-            factor = "(Sec[x Pi]^2 Pi / 2) * "
-            argX = "Tan[x Pi]"
-        # =============== Y ==================
-        if self.caseY == IntegrandType.AB:
-            factor = factor + "{} * ".format(self.sepY)
-            argY = "{} * (y + 1) + {}".format(self.sepY, self.leftY)
-        elif self.caseY == IntegrandType.AInfinite:
-            factor = factor + self.aInfMapping.FactorString(True, self.leftY, "y")
-            argY = self.aInfMapping.ArgString(True, self.leftY, "y")
-        elif self.caseY == IntegrandType.InfiniteA:
-            factor = factor + self.aInfMapping.FactorString(False, self.rightY, "y")
-            argY = self.aInfMapping.ArgString(False, self.rightY, "y")
-        elif self.caseY == IntegrandType.InfiniteInfinite:
-            factor = factor + "(Sec[y Pi]^2 Pi / 2) * "
-            argY = "Tan[y Pi]"
-        return head + "g[x_, y_]:={} f[{}, {}];".format(factor, argX, argY)
+        if self.hasMathematicaExpression:
+            head = head + self.FExpression
+        else:
+            head = head + self.Dress()
+        return head

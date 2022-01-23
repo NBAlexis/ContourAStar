@@ -1,6 +1,6 @@
 from Contour1D.Integrators import *
 
-from Contour2D.CGrid2D import CGrids2D
+from _DiscardedIntegrators.CGrid2D import CGrids2D
 from Contour2D.Integrand2D import Integrand2D
 from Contour2D.Integrator2D import SparseGridIntegrator
 
