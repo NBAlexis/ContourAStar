@@ -12,6 +12,7 @@ class Integrand3D:
                  leftZ: complex, rightZ: complex,
                  aInfMapping: AInfiniteMapping = LogMapping()):
         self.vpf = None
+        self.denominator = None
         self.func = func
         # ================= X ====================
         if cmath.isinf(leftX) and cmath.isinf(rightX):
@@ -201,5 +202,49 @@ class Integrand3D:
     def GetVPF(self):
         return self.vpf
 
+    def SetDenominator(self, denominator):
+        self.denominator = denominator
+
+    def HasDenominator(self) -> bool:
+        return self.denominator is not None
+
+    def EvaluateDenominator(self, x: complex, y: complex, z: complex) -> complex:
+        """
+        it should be a polynomial, so we do not use "try"
+        """
+        newX: complex = x
+        newY: complex = y
+        newZ: complex = z
+        # =============== X ==================
+        if self.caseX == IntegrandType.AB or self.caseX == IntegrandType.ZeroOne:
+            newX = self.sepX * (x + 1) + self.leftX
+        elif self.caseX == IntegrandType.AInfinite:
+            newX = self.aInfMapping.Arg(True, self.leftX, x)
+        elif self.caseX == IntegrandType.InfiniteA:
+            newX = self.aInfMapping.Arg(False, self.rightX, x)
+        elif self.caseX == IntegrandType.InfiniteInfinite:
+            b: complex = cmath.pi * x
+            newX = cmath.tan(b)
+        # =============== Y ==================
+        if self.caseY == IntegrandType.AB or self.caseY == IntegrandType.ZeroOne:
+            newY = self.sepY * (y + 1) + self.leftY
+        elif self.caseY == IntegrandType.AInfinite:
+            newY = self.aInfMapping.Arg(True, self.leftY, y)
+        elif self.caseY == IntegrandType.InfiniteA:
+            newY = self.aInfMapping.Arg(False, self.rightY, y)
+        elif self.caseY == IntegrandType.InfiniteInfinite:
+            b: complex = cmath.pi * y
+            newY = cmath.tan(b)
+        # =============== Z ==================
+        if self.caseZ == IntegrandType.AB or self.caseZ == IntegrandType.ZeroOne:
+            newZ = self.sepZ * (z + 1) + self.leftZ
+        elif self.caseZ == IntegrandType.AInfinite:
+            newZ = self.aInfMapping.Arg(True, self.leftZ, z)
+        elif self.caseZ == IntegrandType.InfiniteA:
+            newZ = self.aInfMapping.Arg(False, self.rightZ, z)
+        elif self.caseZ == IntegrandType.InfiniteInfinite:
+            b: complex = cmath.pi * z
+            newY = cmath.tan(b)
+        return self.denominator(newX, newY, newZ)
 
 

@@ -37,11 +37,101 @@ class Integrators3D:
     def GetLeftEdgeX(self) -> float:
         pass
 
+    @staticmethod
+    def CheckPolesFast(func: Integrand3D,
+                       fromX: complex,
+                       toX: complex,
+                       fromY: complex,
+                       toY: complex,
+                       fromZ: complex,
+                       toZ: complex,
+                       interval: int = 50,
+                       epsilon: float = 1.0e-9) -> bool:
+        """
+        :return:
+        Whether has a pole
+
+        To avoid treat zeros as the pole, please specify the denominator.
+        """
+        if not func.HasDenominator():
+            return False
+        # rescale X
+        sepX = (toX - fromX)
+        xf = fromX + sepX * epsilon
+        xt = toX - sepX * epsilon
+        xStep = (xt - xf) / interval
+        # rescale Y
+        sepY = (toY - fromY)
+        yf = fromY + sepY * epsilon
+        yt = toY - sepY * epsilon
+        yStep = (yt - yf) / interval
+        # rescale Z
+        sepZ = (toZ - fromZ)
+        zf = fromZ + sepZ * epsilon
+        zt = toZ - sepZ * epsilon
+        zStep = (zt - zf) / interval
+        loopRange = range(0, interval)
+        arg_yf_zf_X = 0
+        arg_xt_zf_Y = 0
+        arg_yt_zf_X = 0
+        arg_xf_zf_Y = 0
+        for i in loopRange:
+            arg_yf_zf_X = arg_yf_zf_X + cmath.phase(func.EvaluateDenominator(xf + (i + 1) * xStep, yf, zf)
+                                                    / func.EvaluateDenominator(xf + i * xStep, yf, zf))
+            arg_xt_zf_Y = arg_xt_zf_Y + cmath.phase(func.EvaluateDenominator(xt, yf + (i + 1) * yStep, zf)
+                                                    / func.EvaluateDenominator(xt, yf + i * yStep, zf))
+            arg_yt_zf_X = arg_yt_zf_X + cmath.phase(func.EvaluateDenominator(xf + (i + 1) * xStep, yt, zf)
+                                                    / func.EvaluateDenominator(xf + i * xStep, yt, zf))
+            arg_xf_zf_Y = arg_xf_zf_Y + cmath.phase(func.EvaluateDenominator(xf, yf + (i + 1) * yStep, zf)
+                                                    / func.EvaluateDenominator(xf, yf + i * yStep, zf))
+        if abs(arg_yf_zf_X + arg_xt_zf_Y - arg_yt_zf_X - arg_xf_zf_Y) > 0.5:
+            return True
+        arg_xt_yf_Z = 0
+        arg_yf_zt_X = 0
+        arg_xf_yf_Z = 0
+        for i in loopRange:
+            arg_xt_yf_Z = arg_xt_yf_Z + cmath.phase(func.EvaluateDenominator(xt, yf, zf + (i + 1) * zStep)
+                                                    / func.EvaluateDenominator(xt, yf, zf + i * zStep))
+            arg_yf_zt_X = arg_yf_zt_X + cmath.phase(func.EvaluateDenominator(xf + (i + 1) * xStep, yf, zt)
+                                                    / func.EvaluateDenominator(xf + i * xStep, yf, zt))
+            arg_xf_yf_Z = arg_xf_yf_Z + cmath.phase(func.EvaluateDenominator(xf, yf, zf + (i + 1) * zStep)
+                                                    / func.EvaluateDenominator(xf, yf, zf + i * zStep))
+        if abs(arg_yf_zf_X + arg_xt_yf_Z - arg_yf_zt_X - arg_xf_yf_Z) > 0.5:
+            return True
+        arg_xt_yt_Z = 0
+        arg_xt_zt_Y = 0
+        for i in loopRange:
+            arg_xt_yt_Z = arg_xt_yt_Z + cmath.phase(func.EvaluateDenominator(xt, yt, zf + (i + 1) * zStep)
+                                                    / func.EvaluateDenominator(xt, yt, zf + i * zStep))
+            arg_xt_zt_Y = arg_xt_zt_Y + cmath.phase(func.EvaluateDenominator(xt, yf + (i + 1) * yStep, zt)
+                                                    / func.EvaluateDenominator(xt, yf + i * yStep, zt))
+        if abs(arg_xt_zf_Y + arg_xt_yt_Z - arg_xt_zt_Y - arg_xt_yf_Z) > 0.5:
+            return True
+        arg_yt_zt_X = 0
+        arg_xf_yt_Z = 0
+        for i in loopRange:
+            arg_yt_zt_X = arg_yt_zt_X + cmath.phase(func.EvaluateDenominator(xf + (i + 1) * xStep, yt, zt)
+                                                    / func.EvaluateDenominator(xf + i * xStep, yt, zt))
+            arg_xf_yt_Z = arg_xf_yt_Z + cmath.phase(func.EvaluateDenominator(xf, yt, zf + (i + 1) * zStep)
+                                                    / func.EvaluateDenominator(xf, yt, zf + i * zStep))
+        if abs(arg_yt_zf_X + arg_xt_yt_Z - arg_yt_zt_X - arg_xf_yt_Z) > 0.5:
+            return True
+        arg_xf_zt_Y = 0
+        for i in loopRange:
+            arg_xf_zt_Y = arg_xf_zt_Y + cmath.phase(func.EvaluateDenominator(xf, yf + (i + 1) * yStep, zt)
+                                                    / func.EvaluateDenominator(xf, yf + i * yStep, zt))
+        if abs(arg_yf_zt_X + arg_xt_zt_Y - arg_yt_zt_X - arg_xf_zt_Y) > 0.5:
+            return True
+        if abs(arg_xf_zf_Y + arg_xf_yt_Z - arg_xf_zt_Y - arg_xf_yf_Z) > 0.5:
+            return True
+        return False
+
 
 class SparseGridIntegrator3D(Integrators3D):
 
     def __init__(self, nestedQuadrature: NestedQuadrature = GaussPatterson(),
                  maxOrder: int = 15, epsilon=1.0e-8, epsilon2d=1.0e-8, epsilon1d=1.0e-8,
+                 fastCheckPole: int = 20,
                  checkContinuity: float = -1, logLevel: LogLevel = LogLevel.General):
         self.epsilon = epsilon
         self.epsilon2d = epsilon2d
@@ -67,6 +157,7 @@ class SparseGridIntegrator3D(Integrators3D):
         self.startIndex1d = startIndex3
         self.endIndex1d = endIndex3
         self.weights1d = weights3
+        self.fastCheckPole = fastCheckPole
 
     def Integrate(self, func: Integrand3D,
                   fromX: complex, toX: complex,
@@ -74,6 +165,9 @@ class SparseGridIntegrator3D(Integrators3D):
                   fromZ: complex, toZ: complex) -> [bool, complex]:
         if self.logLevel >= LogLevel.Verbose:
             print("integrate3d: x: ", fromX, " to ", toX, " y: ", fromY, " to ", toY, " z: ", fromZ, " to ", toZ)
+        if self.fastCheckPole > 0:
+            if self.CheckPolesFast(func, fromX, toX, fromY, toY, fromZ, toZ, self.fastCheckPole):
+                return [False, cmath.nan]
         resOld: complex = 0
         strideX: complex = 0.5 * (toX - fromX)
         strideY: complex = 0.5 * (toY - fromY)
@@ -109,10 +203,11 @@ class SparseGridIntegrator3D(Integrators3D):
                     return [True, strideX * strideY * strideZ * resNew]
             resOld = resNew
         if self.logLevel >= LogLevel.General:
-            print("Sparse Grid 3d failed due to max iteration reached\n, x:{} to {} y:{} to {} z:{} to {}  last value is "
-                  .format(fromX, toX, fromY, toY, fromZ, toZ),
-                  strideX * strideY * strideZ * resOld,
-                  " delta = {}/{}".format(delta, self.epsilon))
+            print(
+                "Sparse Grid 3d failed due to max iteration reached\n, x:{} to {} y:{} to {} z:{} to {}  last value is "
+                    .format(fromX, toX, fromY, toY, fromZ, toZ),
+                    strideX * strideY * strideZ * resOld,
+                " delta = {}/{}".format(delta, self.epsilon))
         return [False, strideX * strideY * strideZ * resOld]
 
     def IntegrateYZ(self, func: Integrand3D,
@@ -203,4 +298,3 @@ class SparseGridIntegrator3D(Integrators3D):
 
     def Finish(self):
         return
-

@@ -130,13 +130,14 @@ class MathLinkIntegrator2D(Integrators2D):
 
 class MathLinkIntegrator3D(Integrators3D):
 
-    def __init__(self, logLevel=LogLevel.Verbose):
+    def __init__(self, fastCheckPole: int = 50, logLevel=LogLevel.Verbose):
         self.logLevel = logLevel
         self.mathlink = None
         self.lastFunc = None
         self.options = ""
         self.warningList = None
         self.quietList = None
+        self.fastCheckPole = fastCheckPole
 
     def __del__(self):
         print("========= MathLink Quit ========")
@@ -148,6 +149,9 @@ class MathLinkIntegrator3D(Integrators3D):
                   fromZ: complex, toZ: complex) -> [bool, complex]:
         if not self.CheckFunc(func):
             return [False, cmath.nan]
+        if self.fastCheckPole > 0:
+            if self.CheckPolesFast(func, fromX, toX, fromY, toY, fromZ, toZ, self.fastCheckPole):
+                return [False, cmath.nan]
         funcString = "g[x, y, z]"
         rangeString = "{" + "x, {}, {}".format(str(fromX).replace("j", " I"), str(toX).replace("j", " I")) + "}, " \
                       + "{" + "y, {}, {}".format(str(fromY).replace("j", " I"), str(toY).replace("j", " I")) + "}, " \
