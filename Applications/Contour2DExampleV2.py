@@ -1,4 +1,5 @@
 from Contour1D.Integrators import *
+from Contour2D.ExtendPath2DV2 import ExtendPath2DV2
 
 from Contour2D.Integrand2D import Integrand2D
 from Contour2D.Integrator2D import SparseGridIntegrator
@@ -79,11 +80,23 @@ intgrand8.SetMathematicaExpress(
     """(1 - x) / (-1 * x * (1 - x) * y - 0.1 * (-1 + x + (1 - x) * y) + 0.2 * (x + (1 - x) * y))""")
 
 
-res = ""
+def intfunc9(x: complex, y: complex) -> complex:
+    s = 1
+    m2sq = 0.1
+    return (1 - x) / (-s * x * (1 - x) * y - m2sq * (-1 + x + (1 - x) * y))
+
+
+intgrand9 = Integrand2D(intfunc9, 0, 1, 0, 1)
+intgrand9.SetMathematicaExpress(
+    """(1 - x) / (-1 * x * (1 - x) * y - 0.1 * (-1 + x + (1 - x) * y) + 0.2 * (x + (1 - x) * y))""")
 
 intgrator = SparseGridIntegrator(logLevel=LogLevel.Warning)
-gridsmall = ExtendPath2D(3, 3, 0, intgrator, logLevel=LogLevel.Warning)
-gridbig = ExtendPath2D(11, 11, 1, intgrator, logLevel=LogLevel.Warning)
+gridsmall = ExtendPath2DV2(3, 3, 0, intgrator, logLevel=LogLevel.Warning)
+intgrator2 = SparseGridIntegrator(logLevel=LogLevel.Warning, epsilon=2.0e-4)
+gridbig = ExtendPath2DV2(5, 3, 1, intgrator2, logLevel=LogLevel.Warning)
+
+res = ""
+
 print(gridsmall.Integrate(intgrand1))
 res = res + gridsmall.GatherInfo()
 
@@ -108,5 +121,7 @@ res = res + gridbig.GatherInfo()
 print(gridsmall.Integrate(intgrand8))
 res = res + gridsmall.GatherInfo()
 
-print(res)
+print(gridbig.Integrate(intgrand9))
+res = res + gridbig.GatherInfo()
 
+print(res)

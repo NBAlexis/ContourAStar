@@ -41,7 +41,7 @@ class SparseGridPoints4D:
         self.y = y
         self.z = z
         self.w = w
-        self.weight = w
+        self.weight = weight
         self.v = v
         self.xBatch = xBatch
         self.xIndex = xIndex

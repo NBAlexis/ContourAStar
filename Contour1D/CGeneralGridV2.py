@@ -1,6 +1,7 @@
 import cmath
-import random
+import numpy as np
 
+from Contour1D.CGeneralGrid import CInterval
 from Contour1D.CGrids import GridDir, GridNeighbour, GridState, OneGrid, AStarResult
 from Contour1D.CommonDefinitions import LogLevel
 
@@ -16,39 +17,82 @@ def TraceBack(checkGrid: OneGrid) -> list:
     return retList
 
 
-class CPath:
+class CPathV2:
 
     def __init__(self, nodes: list, points: list = None):
         self.nodes = nodes
         self.points = points
+        hash = 0
+        for node in nodes:
+            hash += node.idx
+        self.hashcode = hash + len(nodes) * 1000000
 
     def EqualTo(self, other) -> bool:
         if len(self.nodes) != len(other.nodes):
+            return False
+        if self.hashcode != other.hashcode:
             return False
         for i in range(0, len(self.nodes)):
             if self.nodes[i].idx != other.nodes[i].idx:
                 return False
         return True
 
+    def __hash__(self):
+        return self.hashcode
 
-class CInterval:
+    def __eq__(self, other):
+        return self.EqualTo(other)
 
-    def __init__(self, node1: OneGrid, node2: OneGrid, nodeCount: int):
-        self.node1 = node1
-        self.node2 = node2
-        self.idx = (node1.idx * nodeCount + node2.idx) if (node1.idx < node2.idx) \
-            else (node2.idx * nodeCount + node1.idx)
+    def __ne__(self, other):
+        # Not strictly necessary, but to avoid having both x==y and x!=y
+        # True at the same time
+        return not (self == other)
 
 
-class CIntervalList:
+class CPathPair:
+
+    def __init__(self, pathes: list):
+        self.pathes = pathes
+        hash = 0
+        for path in pathes:
+            hash += path.hashcode
+        self.hashcode = hash
+
+    def EqualTo(self, other) -> bool:
+        # if len(self.pathes) != len(other.pathes):
+        #     return False
+        if self.hashcode != other.hashcode:
+            return False
+        for i in range(0, len(self.pathes)):
+            if self.pathes[i] != other.pathes[i]:
+                return False
+        return True
+
+    def __hash__(self):
+        return self.hashcode
+
+    def __eq__(self, other):
+        return self.EqualTo(other)
+
+    def __ne__(self, other):
+        # Not strictly necessary, but to avoid having both x==y and x!=y
+        # True at the same time
+        return not (self == other)
+
+
+class CIntervalListV2:
 
     @staticmethod
     def idx(interval) -> int:
         return interval.idx
 
     def __init__(self, intervals: list):
-        intervals.sort(key=CIntervalList.idx)
+        intervals.sort(key=CIntervalListV2.idx)
         self.intervals = intervals
+        hash = 0
+        for interval in intervals:
+            hash += interval.idx
+        self.hashcode = hash + len(intervals) * 1000000
 
     def EqualTo(self, other) -> bool:
         length = len(self.intervals)
@@ -65,10 +109,29 @@ class CIntervalList:
                 return None
         cpyList = self.intervals.copy()
         cpyList.append(interval)
-        return CIntervalList(cpyList)
+        return CIntervalListV2(cpyList)
+
+    def __hash__(self):
+        return self.hashcode
+
+    def __eq__(self, other):
+        return self.EqualTo(other)
+
+    def __ne__(self, other):
+        # Not strictly necessary, but to avoid having both x==y and x!=y
+        # True at the same time
+        return not (self == other)
 
 
-class CGeneralGrid:
+class CGeneralGridV2:
+
+    @staticmethod
+    def ChooseOpenGrid(grid: OneGrid) -> bool:
+        return grid.state == GridState.OpenList
+
+    @staticmethod
+    def ChooseClosedGrid(grid: OneGrid) -> bool:
+        return grid.state == GridState.ClosedList
 
     def __init__(self, width: int, height: int, edge: int,
                  maxStep: int = 1000000, logLevel: LogLevel = LogLevel.General):
@@ -87,6 +150,8 @@ class CGeneralGrid:
         self.logLevel = logLevel
         self.AStarRes = AStarResult.Unknown
         self.lastError = ""
+        self.openChooser = np.vectorize(self.ChooseOpenGrid)
+        self.closeChooser = np.vectorize(self.ChooseClosedGrid)
 
     def CreateGrid(self) -> [list, list]:
         retList = []
@@ -110,12 +175,11 @@ class CGeneralGrid:
                         retGrid[y][x].SetNeighbour(GridDir(d), None)
         retGrid[self.startY][self.startX].start = True
         retGrid[self.endY][self.endX].target = True
-        return [retGrid, retList]
+        return [retGrid, np.array(retList)]
 
     """
     完全重置
     """
-
     def ResetGrid(self):
         for y in range(0, self.height):
             for x in range(0, self.width):
@@ -139,7 +203,6 @@ class CGeneralGrid:
     """
     不改变连接状态，重置
     """
-
     def RestartGrid(self):
         for y in range(0, self.height):
             for x in range(0, self.width):
@@ -153,13 +216,6 @@ class CGeneralGrid:
         self.gridArray[self.endY][self.endX].target = True
         self.steps = 0
         self.AStarRes = AStarResult.Unknown
-
-    def TurnConnectedToUnknown(self):
-        for y in range(0, self.height):
-            for x in range(0, self.width):
-                for i in range(0, len(self.gridArray[y][x].neighbourState)):
-                    if self.gridArray[y][x].neighbourState[i] == GridNeighbour.Connected:
-                        self.gridArray[y][x].neighbourState[i] = GridNeighbour.Unknown
 
     def CalculateConnectionStep(self, checkConnectionFunction, direction: GridDir, x: int, y: int):
         if self.gridArray[y][x].neighbourNode[direction] is None:
@@ -180,111 +236,28 @@ class CGeneralGrid:
             self.gridArray[y][x].neighbourState[direction] = GridNeighbour.NotConnected
             self.gridArray[y][x].neighbourNode[direction].neighbourState[oppositeD] = GridNeighbour.NotConnected
 
-    def GetBlockedInterval(self, alreadyBlocked: list) -> list:
-        randomList = []
-        for oneGrid in self.gridList:
-            if oneGrid.state == GridState.ClosedList:
-                for i in range(0, len(oneGrid.neighbourState)):
-                    if oneGrid.neighbourState[i] == GridNeighbour.NotConnected and oneGrid.neighbourNode[i] is not None:
-                        v1 = oneGrid.v
-                        v2 = oneGrid.neighbourNode[i].v
-                        hasDuplicated = False
-                        for already in alreadyBlocked:
-                            if abs(already[0] - v1) + abs(already[1] - v2) < 0.000000001:
-                                hasDuplicated = True
-                                break
-                            if abs(already[0] - v2) + abs(already[1] - v1) < 0.000000001:
-                                hasDuplicated = True
-                                break
-                        if not hasDuplicated:
-                            randomList.append([oneGrid.v, oneGrid.neighbourNode[i].v])
-        if len(randomList) > 0:
-            return randomList[random.randint(0, len(randomList) - 1)]
-        return []
-
-    def GetBlockedIntervalNodes(self, alreadyBlockedNodes: list) -> list:
-        randomList = []
-        for oneGrid in self.gridList:
-            if oneGrid.state == GridState.ClosedList:
-                for i in range(0, len(oneGrid.neighbourState)):
-                    if oneGrid.neighbourState[i] == GridNeighbour.NotConnected and oneGrid.neighbourNode[i] is not None:
-                        v1: OneGrid = oneGrid
-                        v2: OneGrid = oneGrid.neighbourNode[i]
-                        hasDuplicated = False
-                        for already in alreadyBlockedNodes:
-                            if already[0].idx == v1.idx and already[1].idx == v2.idx:
-                                hasDuplicated = True
-                                break
-                            if already[1].idx == v1.idx and already[0].idx == v2.idx:
-                                hasDuplicated = True
-                                break
-                        if not hasDuplicated:
-                            randomList.append([v1, v2])
-        if len(randomList) > 0:
-            return randomList[random.randint(0, len(randomList) - 1)]
-        return []
-
-    def ExtendNearestPath(self) -> list:
-        nearestDist = 1000000.0
-        allFarNodes = []
-        allPath = []
-        for oneGrid in self.gridList:
-            if oneGrid.state == GridState.ClosedList:
-                if abs(oneGrid.hn - nearestDist) < 0.0001:
-                    allFarNodes.append(oneGrid)
-                elif oneGrid.hn < nearestDist:
-                    nearestDist = oneGrid.hn
-                    allFarNodes = [oneGrid]
-        for oneGrid in allFarNodes:
-            thisGridPath = TraceBack(oneGrid)
+    def GetAllDisconnectIntervals(self) -> list:
+        closed = self.gridList[self.closeChooser(self.gridList)]
+        allIntervals = []
+        for oneGrid in closed:
             for i in range(0, len(oneGrid.neighbourState)):
                 if oneGrid.neighbourState[i] == GridNeighbour.NotConnected and oneGrid.neighbourNode[i] is not None:
-                    toAdd = [thisGridPath[n][0] for n in range(0, len(thisGridPath))]
-                    toAdd.append(oneGrid)
-                    toAdd.append(oneGrid.neighbourNode[i])
-                    allPath.append(CPath(toAdd))
-        return allPath
-
-    def ExtendAllPath(self) -> list:
-        allPath = []
-        for oneGrid in self.gridList:
-            if oneGrid.state == GridState.ClosedList:
-                thisGridPath = TraceBack(oneGrid)
-                for i in range(0, len(oneGrid.neighbourState)):
-                    if oneGrid.neighbourState[i] == GridNeighbour.NotConnected and oneGrid.neighbourNode[i] is not None:
-                        toAdd = [thisGridPath[n][0] for n in range(0, len(thisGridPath))]
-                        toAdd.append(oneGrid)
-                        toAdd.append(oneGrid.neighbourNode[i])
-                        allPath.append(CPath(toAdd))
-        return allPath
-
-    def GetAllDisconnectIntervals(self) -> list:
-        allIntervals = []
-        for oneGrid in self.gridList:
-            if oneGrid.state == GridState.ClosedList:
-                for i in range(0, len(oneGrid.neighbourState)):
-                    if oneGrid.neighbourState[i] == GridNeighbour.NotConnected and oneGrid.neighbourNode[i] is not None:
-                        toAdd = CInterval(oneGrid, oneGrid.neighbourNode[i], self.width * self.height)
-                        bExist = False
-                        for interval in allIntervals:
-                            if interval.idx == toAdd.idx:
-                                bExist = True
-                                break
-                        if not bExist:
-                            allIntervals.append(toAdd)
+                    toAdd = CInterval(oneGrid, oneGrid.neighbourNode[i], self.width * self.height)
+                    bExist = False
+                    for interval in allIntervals:
+                        if interval.idx == toAdd.idx:
+                            bExist = True
+                            break
+                    if not bExist:
+                        allIntervals.append(toAdd)
         return allIntervals
 
     def OneStep(self, checkConnectionFunction) -> AStarResult:
-        smallestFnNode = None
-        smallestFn = -1
-        for oneGrid in self.gridList:
-            if oneGrid.state == GridState.OpenList:
-                if oneGrid.fn < smallestFn or smallestFn < 0:
-                    smallestFn = oneGrid.fn
-                    smallestFnNode = oneGrid
-        if smallestFnNode is None:
+        opened = self.gridList[self.openChooser(self.gridList)]
+        if len(opened) == 0:
             self.AStarRes = AStarResult.Failed
             return AStarResult.Failed
+        smallestFnNode = np.min(opened)
         if smallestFnNode.target:
             self.AStarRes = AStarResult.Finished
             return AStarResult.Finished
@@ -385,6 +358,11 @@ class CGeneralGrid:
         toRemove.neighbourState[toRemove.parentDir] = GridNeighbour.NotConnected
         toRemove.neighbourNode[toRemove.parentDir].neighbourState[
             GridDir.Down - toRemove.parentDir] = GridNeighbour.NotConnected
+
+    def SetHash(self, hash1: int, hash2: int):
+        for grid in self.gridList:
+            grid.idx1 = grid.idx * hash1
+            grid.idx2 = grid.idx * hash2
 
     def Show(self):
         import matplotlib.pyplot as plt

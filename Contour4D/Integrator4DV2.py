@@ -1,16 +1,17 @@
 import cmath
 import math
 
+import numpy as np
+
 from Contour1D.CommonDefinitions import LogLevel
-from Contour4D.Integrand4D import Integrand4D
-from SparseGridIntegrators.GaussianPatterson import GaussPatterson
-from SparseGridIntegrators.NestedQuadrature import NestedQuadrature
-from SparseGridIntegrators.SparseGridGenerator4D import SparseGrid4D
+from Contour1D.IntegrandV2 import IntegrandV2
+from SparseGridIntegrators.SparseGridCache import CachedPointListAndWeightList
 
 
-class Integrators4D:
+class Integrators4DV2:
+
     def Integrate(self,
-                  func: Integrand4D,
+                  func: IntegrandV2,
                   fromX: complex,
                   toX: complex,
                   fromY: complex,
@@ -25,7 +26,36 @@ class Integrators4D:
         pass
 
     @staticmethod
-    def __FillLine(func: Integrand4D,
+    def GenerateEdgeList(interval: int, epsilon: float = 1.0e-9) -> list:
+        step = (1 - 2 * epsilon) / interval
+        emptyList = []
+        for d in range(0, 4):
+            dlist = []
+            for p1 in range(0, 2):
+                p1list = []
+                for p2 in range(0, 2):
+                    p2list = []
+                    for p3 in range(0, 2):
+                        steplst = [epsilon + i * step for i in range(0, interval + 1)]
+                        p1lst = [epsilon if 0 == p1 else (1 - epsilon) for _ in range(0, interval + 1)]
+                        p2lst = [epsilon if 0 == p2 else (1 - epsilon) for _ in range(0, interval + 1)]
+                        p3lst = [epsilon if 0 == p3 else (1 - epsilon) for _ in range(0, interval + 1)]
+                        if 0 == d:
+                            p2list.append([np.array(steplst), np.array(p1lst), np.array(p2lst), np.array(p3lst)])
+                        elif 1 == d:
+                            p2list.append([np.array(p1lst), np.array(steplst), np.array(p2lst), np.array(p3lst)])
+                        elif 2 == d:
+                            p2list.append([np.array(p1lst), np.array(p2lst), np.array(steplst), np.array(p3lst)])
+                        else:
+                            p2list.append([np.array(p1lst), np.array(p2lst), np.array(p3lst), np.array(steplst)])
+                    p1list.append(p2list)
+                dlist.append(p1list)
+            emptyList.append(dlist)
+        return emptyList
+
+    @staticmethod
+    def __FillLine(func: IntegrandV2,
+                   edge: list,
                    xf: complex,
                    xt: complex,
                    yf: complex,
@@ -34,64 +64,21 @@ class Integrators4D:
                    zt: complex,
                    wf: complex,
                    wt: complex,
-                   step: list,
-                   interval: int,
-                   d: int,
-                   argLst: list) -> [float, float]:
-        if 0 == d:
-            sampLst = [func.EvaluateDenominator(xf + i * step[0],
-                                                yf if 0 == argLst[0] else yt,
-                                                zf if 0 == argLst[1] else zt,
-                                                wf if 0 == argLst[2] else wt)
-                       for i in range(0, interval + 1)]
-            ret1: float = 0.0
-            ret2: float = 0.0
-            for i in range(0, interval):
-                phaseChange = cmath.phase(sampLst[i + 1] / sampLst[i])
-                ret1 = ret1 + phaseChange
-                # ret2 = max(ret2, abs(phaseChange))
-            return [ret1, ret2]
-        if 1 == d:
-            sampLst = [func.EvaluateDenominator(xf if 0 == argLst[0] else xt,
-                                                yf + i * step[1],
-                                                zf if 0 == argLst[1] else zt,
-                                                wf if 0 == argLst[2] else wt)
-                       for i in range(0, interval + 1)]
-            ret1: float = 0.0
-            ret2: float = 0.0
-            for i in range(0, interval):
-                phaseChange = cmath.phase(sampLst[i + 1] / sampLst[i])
-                ret1 = ret1 + phaseChange
-                # ret2 = max(ret2, abs(phaseChange))
-            return [ret1, ret2]
-        if 2 == d:
-            sampLst = [func.EvaluateDenominator(xf if 0 == argLst[0] else xt,
-                                                yf if 0 == argLst[1] else yt,
-                                                zf + i * step[2],
-                                                wf if 0 == argLst[2] else wt)
-                       for i in range(0, interval + 1)]
-            ret1: float = 0.0
-            ret2: float = 0.0
-            for i in range(0, interval):
-                phaseChange = cmath.phase(sampLst[i + 1] / sampLst[i])
-                ret1 = ret1 + phaseChange
-                # ret2 = max(ret2, abs(phaseChange))
-            return [ret1, ret2]
-        sampLst = [func.EvaluateDenominator(xf if 0 == argLst[0] else xt,
-                                            yf if 0 == argLst[1] else yt,
-                                            zf if 0 == argLst[2] else zt,
-                                            wf + i * step[3])
-                   for i in range(0, interval + 1)]
-        ret1: float = 0.0
-        ret2: float = 0.0
-        for i in range(0, interval):
-            phaseChange = cmath.phase(sampLst[i + 1] / sampLst[i])
-            ret1 = ret1 + phaseChange
-            # ret2 = max(ret2, abs(phaseChange))
-        return [ret1, ret2]
+                   interval: int) -> float:
+        [x, y, z, w] = np.copy(edge)
+        x = xf + (xt - xf) * x
+        y = yf + (yt - yf) * y
+        z = zf + (zt - zf) * z
+        w = wf + (wt - wf) * w
+        v = func.vDenom(x, y, z, w)
+        u = np.copy(v)
+        v = np.delete(v, 0)
+        u = np.delete(u, interval)
+        return float(np.sum(np.angle(v / u)))
 
     @staticmethod
-    def CheckPolesFast(func: Integrand4D,
+    def CheckPolesFast(func: IntegrandV2,
+                       edges: list,
                        fromX: complex,
                        toX: complex,
                        fromY: complex,
@@ -100,38 +87,14 @@ class Integrators4D:
                        toZ: complex,
                        fromW: complex,
                        toW: complex,
-                       interval: int = 50,
-                       maxAllowedPhaseChange: float = 1.0,
-                       epsilon: float = 1.0e-9) -> bool:
+                       interval: int = 50) -> bool:
         """
         :return:
         Whether has a pole
 
         To avoid treat zeros as the pole, please specify the denominator.
         """
-        if not func.HasDenominator():
-            return False
         # rescale X
-        sepX = (toX - fromX)
-        xf = fromX + sepX * epsilon
-        xt = toX - sepX * epsilon
-        xStep = (xt - xf) / interval
-        # rescale Y
-        sepY = (toY - fromY)
-        yf = fromY + sepY * epsilon
-        yt = toY - sepY * epsilon
-        yStep = (yt - yf) / interval
-        # rescale Z
-        sepZ = (toZ - fromZ)
-        zf = fromZ + sepZ * epsilon
-        zt = toZ - sepZ * epsilon
-        zStep = (zt - zf) / interval
-        # rescale W
-        sepW = (toW - fromW)
-        wf = fromW + sepW * epsilon
-        wt = toW - sepW * epsilon
-        wStep = (wt - wf) / interval
-        stepAll = [xStep, yStep, zStep, wStep]
         listArgs = [[[[math.nan for _ in range(0, 2)] for _ in range(0, 2)] for _ in range(0, 2)] for _ in range(0, 4)]
         for d1 in range(0, 4):
             for d2 in range(d1 + 1, 4):
@@ -176,32 +139,52 @@ class Integrators4D:
                         # argLine3: float = 0.0
                         # argLine4: float = 0.0
                         if math.isnan(listArgs[d1][lineArgs1[0]][lineArgs1[1]][lineArgs1[2]]):
-                            [argLine1, _] = Integrators4D.__FillLine(func, xf, xt, yf, yt, zf, zt, wf, wt,
-                                                                     stepAll, interval, d1, lineArgs1)
+                            argLine1 = Integrators4DV2.__FillLine(func,
+                                                                  edges[d1][lineArgs1[0]][lineArgs1[1]][lineArgs1[2]],
+                                                                  fromX, toX,
+                                                                  fromY, toY,
+                                                                  fromZ, toZ,
+                                                                  fromW, toW,
+                                                                  interval)
                             # if maxPhaseChange > maxAllowedPhaseChange:
                             #     return True
                             listArgs[d1][lineArgs1[0]][lineArgs1[1]][lineArgs1[2]] = argLine1
                         else:
                             argLine1 = listArgs[d1][lineArgs1[0]][lineArgs1[1]][lineArgs1[2]]
                         if math.isnan(listArgs[d2][lineArgs2[0]][lineArgs2[1]][lineArgs2[2]]):
-                            [argLine2, _] = Integrators4D.__FillLine(func, xf, xt, yf, yt, zf, zt, wf, wt,
-                                                                     stepAll, interval, d2, lineArgs2)
+                            argLine2 = Integrators4DV2.__FillLine(func,
+                                                                  edges[d2][lineArgs2[0]][lineArgs2[1]][lineArgs2[2]],
+                                                                  fromX, toX,
+                                                                  fromY, toY,
+                                                                  fromZ, toZ,
+                                                                  fromW, toW,
+                                                                  interval)
                             # if maxPhaseChange > maxAllowedPhaseChange:
                             #     return True
                             listArgs[d2][lineArgs2[0]][lineArgs2[1]][lineArgs2[2]] = argLine2
                         else:
                             argLine2 = listArgs[d2][lineArgs2[0]][lineArgs2[1]][lineArgs2[2]]
                         if math.isnan(listArgs[d1][lineArgs3[0]][lineArgs3[1]][lineArgs3[2]]):
-                            [argLine3, _] = Integrators4D.__FillLine(func, xf, xt, yf, yt, zf, zt, wf, wt,
-                                                                     stepAll, interval, d1, lineArgs3)
+                            argLine3 = Integrators4DV2.__FillLine(func,
+                                                                  edges[d1][lineArgs3[0]][lineArgs3[1]][lineArgs3[2]],
+                                                                  fromX, toX,
+                                                                  fromY, toY,
+                                                                  fromZ, toZ,
+                                                                  fromW, toW,
+                                                                  interval)
                             # if maxPhaseChange > maxAllowedPhaseChange:
                             #     return True
                             listArgs[d1][lineArgs3[0]][lineArgs3[1]][lineArgs3[2]] = argLine3
                         else:
                             argLine3 = listArgs[d1][lineArgs3[0]][lineArgs3[1]][lineArgs3[2]]
                         if math.isnan(listArgs[d2][lineArgs4[0]][lineArgs4[1]][lineArgs4[2]]):
-                            [argLine4, _] = Integrators4D.__FillLine(func, xf, xt, yf, yt, zf, zt, wf, wt,
-                                                                     stepAll, interval, d2, lineArgs4)
+                            argLine4 = Integrators4DV2.__FillLine(func,
+                                                                  edges[d2][lineArgs4[0]][lineArgs4[1]][lineArgs4[2]],
+                                                                  fromX, toX,
+                                                                  fromY, toY,
+                                                                  fromZ, toZ,
+                                                                  fromW, toW,
+                                                                  interval)
                             # if maxPhaseChange > maxAllowedPhaseChange:
                             #     return True
                             listArgs[d2][lineArgs4[0]][lineArgs4[1]][lineArgs4[2]] = argLine4
@@ -213,26 +196,35 @@ class Integrators4D:
         return False
 
 
-class SparseGridIntegrator4D(Integrators4D):
+class SparseGridIntegrator4DV2(Integrators4DV2):
 
-    def __init__(self, nestedQuadrature: NestedQuadrature = GaussPatterson(),
-                 maxOrder: int = 15, epsilon=1.0e-4,
-                 fastCheckPole: int = 20, maxArgChange: float = 1.2,
+    def __init__(self, fileFolder: str = "../_Data/SparseGrid4D/GaussPatterson",
+                 maxOrder: int = 12, epsilon=1.0e-4,
+                 fastCheckPole: int = 20,
                  logLevel: LogLevel = LogLevel.General):
         self.epsilon = epsilon
         self.logLevel = logLevel
-        self.maxOrder = maxOrder if nestedQuadrature.MaxOrder() < 0 else min(maxOrder, nestedQuadrature.MaxOrder())
-        self.nestedQuadrature = nestedQuadrature
-        sparseGrid = SparseGrid4D(nestedQuadrature)
-        [pts, startIndex, endIndex, weights] = sparseGrid.ConstructPointListAndWeightList(self.maxOrder)
-        self.points = pts
-        self.startIndex = startIndex
-        self.endIndex = endIndex
-        self.weights = weights
+        [pts, startIndex, endIndex, weights] = CachedPointListAndWeightList(fileFolder, maxOrder)
+        self.maxOrder = len(weights)
+        pointList = []
+        weightList = []
+        for i in range(0, self.maxOrder):
+            ptAtOrderI = []
+            weightAtOrderI = []
+            # ======= get function values ========
+            for pointIndex in range(startIndex[i], endIndex[i]):
+                ptAtOrderI.append([pts[pointIndex].x, pts[pointIndex].y, pts[pointIndex].z, pts[pointIndex].w])
+            for pointIndex in range(0, endIndex[i]):
+                weightAtOrderI.append(weights[i][pointIndex])
+            pointList.append(np.array(ptAtOrderI))
+            weightList.append(np.array(weightAtOrderI))
+        self.points = pointList
+        self.weights = weightList
         self.fastCheckPole = fastCheckPole
-        self.maxArgChange = maxArgChange
+        if self.fastCheckPole > 0:
+            self.edges = Integrators4DV2.GenerateEdgeList(fastCheckPole)
 
-    def Integrate(self, func: Integrand4D,
+    def Integrate(self, func: IntegrandV2,
                   fromX: complex, toX: complex,
                   fromY: complex, toY: complex,
                   fromZ: complex, toZ: complex,
@@ -240,9 +232,8 @@ class SparseGridIntegrator4D(Integrators4D):
         if self.logLevel >= LogLevel.Verbose:
             print("integrate4d: x: ", fromX, " to ", toX, " y: ", fromY, " to ", toY, " z: ", fromZ, " to ", toZ,
                   " w: ", fromW, " to ", toW)
-        if self.fastCheckPole > 0:
-            if self.CheckPolesFast(func, fromX, toX, fromY, toY, fromZ, toZ, fromW, toW, self.fastCheckPole,
-                                   self.maxArgChange):
+        if self.fastCheckPole > 0 and func.vDenom is not None:
+            if self.CheckPolesFast(func, self.edges, fromX, toX, fromY, toY, fromZ, toZ, fromW, toW, self.fastCheckPole):
                 return [False, cmath.nan]
         resOld: complex = 0
         strideX: complex = 0.5 * (toX - fromX)
@@ -250,27 +241,16 @@ class SparseGridIntegrator4D(Integrators4D):
         strideZ: complex = 0.5 * (toZ - fromZ)
         strideW: complex = 0.5 * (toW - fromW)
         delta = 0
+        values = np.array([])
         for i in range(0, self.maxOrder):
             # ======= get function values ========
-            for pointIndex in range(self.startIndex[i], self.endIndex[i]):
-                x = self.points[pointIndex].x
-                y = self.points[pointIndex].y
-                z = self.points[pointIndex].z
-                w = self.points[pointIndex].w
-                v = func.Evaluate(strideX * (x + 1) + fromX, strideY * (y + 1) + fromY, strideZ * (z + 1) + fromZ,
-                                  strideW * (w + 1) + fromW)
-                if cmath.isnan(v) or cmath.isinf(v):
-                    print("Sparse Grid4d failed because of nan at {}, {}, {}, {}"
-                          .format(strideX * (x + 1) + fromX,
-                                  strideY * (y + 1) + fromY,
-                                  strideZ * (z + 1) + fromZ,
-                                  strideW * (w + 1) + fromW))
-                    return [False, cmath.nan]
-                self.points[pointIndex].v = v
-            # ======= time weights ===============
-            resNew: complex = 0
-            for pointIndex in range(0, self.endIndex[i]):
-                resNew = resNew + self.points[pointIndex].v * self.weights[i][pointIndex]
+            xV = strideX * (self.points[i][:, 0] + 1) + fromX
+            yV = strideY * (self.points[i][:, 1] + 1) + fromY
+            zV = strideZ * (self.points[i][:, 2] + 1) + fromZ
+            wV = strideW * (self.points[i][:, 3] + 1) + fromW
+            newValues = func.vFunc(xV, yV, zV, wV)
+            values = np.append(values, newValues)
+            resNew = complex(np.dot(values, self.weights[i]))
             if i > 0:
                 checkDelta = abs(resNew)
                 checkDelta = 1.0e-6 if checkDelta < 1.0e-6 else checkDelta

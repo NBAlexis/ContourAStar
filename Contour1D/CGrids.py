@@ -1,6 +1,8 @@
 import cmath
 from enum import IntEnum
 
+import numpy as np
+
 from Contour1D.CommonDefinitions import LogLevel
 from Contour1D.Integrand import Integrand
 from Contour1D.Integrators import Integrators
@@ -47,11 +49,13 @@ class OneGrid:
         self.neighbourState = [GridNeighbour.Unknown, GridNeighbour.Unknown, GridNeighbour.Unknown,
                                GridNeighbour.Unknown]
         self.state = GridState.NotDecide
-        self.fn = 0
-        self.hn = 0
-        self.gn = 0
+        self.fn = 0.0
+        self.hn = 0.0
+        self.gn = 0.0
         self.start = False
         self.target = False
+        self.idx1 = idx
+        self.idx2 = idx
 
     def SetNeighbour(self, direction: GridDir, neighbour):
         if neighbour is None:
@@ -84,16 +88,47 @@ class OneGrid:
         if self.state == GridState.NotDecide:
             self.parent = parentNode
             self.parentDir = oppositeD
-            self.gn = 1 + parentNode.gn
+            self.gn = 1.0 + parentNode.gn
             self.fn = self.hn + self.gn
             self.state = GridState.OpenList
             return
-        newGn = 1 + parentNode.gn
+        newGn = 1.0 + parentNode.gn
         if newGn < self.gn:
             self.gn = newGn
             self.parent = parentNode
             self.parentDir = oppositeD
             self.fn = self.gn + self.hn
+
+    """
+    def __float__(self) -> float:
+        if self.state == GridState.OpenList:
+            return float(self.fn)
+        if self.state == GridState.ClosedList:
+            return -10.0
+        return -1.0
+
+    def __cmp__(self, other):
+        me = float(self)
+        you = float(other)
+        if me > you:
+            return 1
+        elif me < you:
+            return -1
+        return 0
+        
+    def __lt__(self, other): return self.__cmp__(other) < 0
+    def __le__(self, other): return self.__cmp__(other) <= 0
+    def __eq__(self, other): return self.__cmp__(other) == 0
+    def __ne__(self, other): return self.__cmp__(other) != 0
+    def __gt__(self, other): return self.__cmp__(other) > 0
+    def __ge__(self, other): return self.__cmp__(other) >= 0
+    """
+
+    def __gt__(self, other):
+        return self.fn > other.fn
+
+    def __le__(self, other):
+        return self.fn <= other.fn
 
 
 class CGrids:
